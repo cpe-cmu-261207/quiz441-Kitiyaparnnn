@@ -21,19 +21,25 @@ interface JWTPayload {
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   // Use username and password to create token.
-  const { users } = JSON.parse(
+  const file = JSON.parse(
     fs.readFileSync("./user.json", { encoding: "utf-8" })
   );
+  const { users } = file;
   const complete = users.find(
     (user: { username: string; password: string }) => {
       user.username === username && bcrypt.compareSync(password, user.password);
     }
   );
+  //bug undefinded complete
+  console.log(complete);
 
   if (complete) {
     const token = jwt.sign(
       {
         username: complete.username,
+        firstname: complete.firstname,
+        lastname: complete.lastname,
+        balance: complete.balance,
       },
       SECRET
     );
@@ -72,6 +78,7 @@ app.post("/register", (req, res) => {
     fs.writeFileSync("./user.json", JSON.stringify(file));
     res.status(200).json({ massage: "Register successfully" });
   }
+  
 });
 
 app.get("/balance", (req, res) => {
@@ -105,7 +112,32 @@ app.post("/deposit", body("amount").isInt({ min: 1 }), (req, res) => {
     return res.status(400).json({ message: "Invalid data" });
 });
 
-app.post("/withdraw", (req, res) => {});
+app.post("/withdraw", (req, res) => {
+  const token = req.query.token as string;
+  const { amount } = req.body;
+  if (token) {
+    try {
+      const user = jwt.verify(token, SECRET);
+      console.log(user);
+      if (Number(amount) < 0 || Number(amount) == 0) {
+        res.status(400).json({
+          massage: "Invalid data",
+        });
+      } else {
+        res.status(200).json({
+          massage: "Withdraw successfully",
+          //get balance from user
+          balance : amount
+        });
+      }
+    } catch (e) {
+      res.status(401).json({
+        massage: "Invalid token",
+      });
+    }
+  }
+  res.end();
+});
 
 app.delete("/reset", (req, res) => {
   //code your database reset here

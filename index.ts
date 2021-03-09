@@ -78,7 +78,6 @@ app.post("/register", (req, res) => {
     fs.writeFileSync("./user.json", JSON.stringify(file));
     res.status(200).json({ massage: "Register successfully" });
   }
-  
 });
 
 app.get("/balance", (req, res) => {
@@ -108,8 +107,25 @@ app.get("/balance", (req, res) => {
 
 app.post("/deposit", body("amount").isInt({ min: 1 }), (req, res) => {
   //Is amount <= 0 ?
-  if (!validationResult(req).isEmpty())
-    return res.status(400).json({ message: "Invalid data" });
+  const token = req.headers.authorization;
+  const { amount } = req.body;
+  if (token) {
+    try {
+      if (Number(amount) == 0 || Number(amount) < 0) {
+        res.status(400).json({
+          massage: "Invalid data",
+        });
+      } else if (!validationResult(req).isEmpty()) {
+        res
+          .status(200)
+          .json({ message: "Deposit successfully", balance: Number(amount) });
+      }
+    } catch (e) {
+      res.status(401).json({
+        massage: "Invalid token",
+      });
+    }
+  }
 });
 
 app.post("/withdraw", (req, res) => {
@@ -127,7 +143,7 @@ app.post("/withdraw", (req, res) => {
         res.status(200).json({
           massage: "Withdraw successfully",
           //get balance from user
-          balance : amount
+          balance: amount,
         });
       }
     } catch (e) {

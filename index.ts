@@ -114,13 +114,20 @@ app.delete("/reset", (req, res) => {
   );
   const { users } = file;
   file.users = [];
-  fs.writeFileSync("./user.json",JSON.stringify(file))
+  fs.writeFileSync("./user.json", JSON.stringify(file));
   res.status(200).json({
     message: "Reset database successfully",
   });
 });
 
-app.get("/me", (req, res) => {});
+app.get("/me", (req, res) => {
+  res.status(200).json({
+    firstname: "Kitiyaporn",
+    lastname: "Takham",
+    code: "620610774",
+    gpa: 3.8,
+  });
+});
 
 app.get("/demo", (req, res) => {
   return res.status(200).json({

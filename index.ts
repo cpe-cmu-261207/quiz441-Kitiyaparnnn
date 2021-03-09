@@ -21,15 +21,15 @@ interface JWTPayload {
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   // Use username and password to create token.
-  const file = JSON.parse(
+  const { users } = JSON.parse(
     fs.readFileSync("./user.json", { encoding: "utf-8" })
   );
-  const { users } = file;
   const complete = users.find(
-    (user: { Username: string; password: string }) => {
-      user.Username === username && bcrypt.compareSync(password, user.password);
+    (user: { username: string; password: string }) => {
+      user.username === username && bcrypt.compareSync(password, user.password);
     }
   );
+
   if (complete) {
     const token = jwt.sign(
       {
@@ -46,7 +46,6 @@ app.post("/login", (req, res) => {
       massage: "Invalid username or password",
     });
   }
-  res.end();
 });
 
 app.post("/register", (req, res) => {
@@ -77,10 +76,26 @@ app.post("/register", (req, res) => {
 
 app.get("/balance", (req, res) => {
   const token = req.query.token as string;
-  try {
-    const { username } = jwt.verify(token, SECRET) as JWTPayload;
-  } catch (e) {
-    //response in case of invalid token
+  const file = JSON.parse(
+    fs.readFileSync("./user.json", { encoding: "utf-8" })
+  );
+  const { users } = file;
+  if (token) {
+    try {
+      const { username } = jwt.verify(token, SECRET) as JWTPayload;
+      const takeToken = users.fond(
+        (user: { username: string }) => user.username === username
+      );
+      res.status(200).json({
+        name: `${takeToken.firstname}` + `${takeToken.lastname}`,
+        balance: takeToken.balance,
+      });
+    } catch (e) {
+      //response in case of invalid token
+      res.status(401).json({
+        massage: "Invalid token",
+      });
+    }
   }
 });
 
@@ -94,8 +109,13 @@ app.post("/withdraw", (req, res) => {});
 
 app.delete("/reset", (req, res) => {
   //code your database reset here
-
-  return res.status(200).json({
+  const file = JSON.parse(
+    fs.readFileSync("./user.json", { encoding: "utf-8" })
+  );
+  const { users } = file;
+  file.users = [];
+  fs.writeFileSync("./user.json",JSON.stringify(file))
+  res.status(200).json({
     message: "Reset database successfully",
   });
 });

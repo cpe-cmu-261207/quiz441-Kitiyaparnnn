@@ -1,1 +1,11 @@
-{"users":[{"username":"parn","password":"$2b$10$Xf9IRgl1JcdoqdvmhiwWv.zZJPeZVQjxOzUHeSw0JWpVM681lD4mC","firstname":"Kiti","lastname":"ta","balance":200}]}
+{
+  "users": [
+    {
+      "username": "hof",
+      "password": "$2b$10$XplBIO/Oj7AvV1CTN4fNq.E2AKJG9/7Ps1jQakDOgJ8t3QBSBw74q",
+      "firstname": "gond",
+      "lastname": "easgsd",
+      "balance": 23
+    }
+  ]
+}

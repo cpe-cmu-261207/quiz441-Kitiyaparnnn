@@ -10,7 +10,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 const SECRET = "SIMPLE_SECRET";
 
 interface JWTPayload {
@@ -26,9 +26,8 @@ app.post("/login", (req, res) => {
   );
   const { users } = file;
   const complete = users.find(
-    (user: { username: string; password: string }) => {
-      user.username === username && bcrypt.compareSync(password, user.password);
-    }
+    (user: { username: any; password: string }) =>
+      user.username === username && bcrypt.compareSync(password, user.password)
   );
   //bug undefinded complete
   console.log(complete);
@@ -89,11 +88,11 @@ app.get("/balance", (req, res) => {
   if (token) {
     try {
       const { username } = jwt.verify(token, SECRET) as JWTPayload;
-      const takeToken = users.fond(
+      const takeToken = users.find(
         (user: { username: string }) => user.username === username
       );
       res.status(200).json({
-        name: `${takeToken.firstname}` + `${takeToken.lastname}`,
+        name: `${takeToken.firstname}` + " " + `${takeToken.lastname}`,
         balance: takeToken.balance,
       });
     } catch (e) {
@@ -107,45 +106,101 @@ app.get("/balance", (req, res) => {
 
 app.post("/deposit", body("amount").isInt({ min: 1 }), (req, res) => {
   //Is amount <= 0 ?
-  const token = req.headers.authorization;
+  if (!validationResult(req).isEmpty()) {
+    return res.status(400).json({
+      massage: "Invalid data",
+    });
+  }
+  const token = req.query;
+  const file = JSON.parse(
+    fs.readFileSync("./user.json", { encoding: "utf-8" })
+  );
+  const { users } = file;
   const { amount } = req.body;
-  if (token) {
+  if (!token) {
+    return res.status(401).json({
+      massage: "Invalid token",
+    });
+  }
+  const token2 = token.token as string;
+  // console.log(token2);
+  if (token2) {
     try {
-      if (Number(amount) == 0 || Number(amount) < 0) {
-        res.status(400).json({
-          massage: "Invalid data",
+      const { username } = jwt.verify(token2, SECRET) as JWTPayload;
+      const takeToken = users.find(
+        (user: { username: string }) => user.username === username
+      );
+      // console.log(takeToken.balance);
+
+      if (validationResult(req).isEmpty()) {
+        takeToken.balance += amount;
+        res.status(200).json({
+          message: "Deposit successfully",
+          balance: takeToken.balance,
         });
-      } else if (!validationResult(req).isEmpty()) {
-        res
-          .status(200)
-          .json({ message: "Deposit successfully", balance: Number(amount) });
       }
+      const editUser = users.map((user: { name: string; balance: number }) => {
+        if (user.name === username) {
+          return (user.balance = takeToken.balance);
+        }
+      });
+      fs.writeFileSync("./user.json", JSON.stringify(file));
     } catch (e) {
       res.status(401).json({
         massage: "Invalid token",
       });
     }
   }
+  res.end();
 });
 
-app.post("/withdraw", (req, res) => {
-  const token = req.query.token as string;
+
+app.post("/withdraw",body("amount").isInt({ min: 1 }), (req, res) => {
+  if (!validationResult(req).isEmpty()) {
+    return res.status(400).json({
+      massage: "Invalid data",
+    });
+  }
+  const token = req.query;
+  const file = JSON.parse(
+    fs.readFileSync("./user.json", { encoding: "utf-8" })
+  );
+  const { users } = file;
   const { amount } = req.body;
-  if (token) {
+  if (!token) {
+    return res.status(401).json({
+      massage: "Invalid token",
+    });
+  }
+  const token2 = token.token as string;
+  // console.log(token2);
+  if (token2) {
     try {
-      const user = jwt.verify(token, SECRET);
-      console.log(user);
-      if (Number(amount) < 0 || Number(amount) == 0) {
-        res.status(400).json({
-          massage: "Invalid data",
-        });
-      } else {
+      const { username } = jwt.verify(token2, SECRET) as JWTPayload;
+      const takeToken = users.find(
+        (user: { username: string }) => user.username === username
+      );
+      // console.log(takeToken.balance);
+
+      if (validationResult(req).isEmpty()) {
+        takeToken.balance -= amount;
+        if(takeToken.balance < 0){
+          return res.status(400).json({
+            massage: "Invalid data",
+          });
+        }
+  
         res.status(200).json({
-          massage: "Withdraw successfully",
-          //get balance from user
-          balance: amount,
+          message: "Withdraw successfully",
+          balance: takeToken.balance,
         });
       }
+      const editUser = users.map((user: { name: string; balance: number }) => {
+        if (user.name === username) {
+          return (user.balance = takeToken.balance);
+        }
+      });
+      fs.writeFileSync("./user.json", JSON.stringify(file));
     } catch (e) {
       res.status(401).json({
         massage: "Invalid token",
